@@ -24,10 +24,11 @@ export const MapCanvas: React.FC = () => {
   const [isLiveRadar, setIsLiveRadar] = useState<boolean>(false);
   const [flightCount, setFlightCount] = useState<number>(0);
 
-  // Map stores for active flights & Leaflet markers & label placement side
+  // Map stores for active flights & Leaflet markers & label placement side & hover status
   const flightsMapRef = useRef<Map<string, RenderFlight>>(new Map());
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
   const labelSidesRef = useRef<Map<string, 'left' | 'right'>>(new Map());
+  const hoverStatesRef = useRef<Map<string, boolean>>(new Map());
 
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
@@ -255,7 +256,7 @@ export const MapCanvas: React.FC = () => {
     const updateLoop = (now: number) => {
       const map = mapRef.current;
 
-      if (map) {
+      if (map && (map as any)._loaded && (map as any)._mapPane) {
         const flightPositions: { flight: RenderFlight; x: number; y: number; labelSide: 'right' | 'left' }[] = [];
 
         flightsMapRef.current.forEach((f) => {
@@ -285,8 +286,14 @@ export const MapCanvas: React.FC = () => {
             }
           }
 
-          const pt = map.latLngToContainerPoint(L.latLng(f.lat, f.lon));
-          flightPositions.push({ flight: f, x: pt.x, y: pt.y, labelSide: 'right' });
+          if (typeof f.lat === 'number' && typeof f.lon === 'number' && !isNaN(f.lat) && !isNaN(f.lon)) {
+            try {
+              const pt = map.latLngToContainerPoint([f.lat, f.lon]);
+              flightPositions.push({ flight: f, x: pt.x, y: pt.y, labelSide: 'right' });
+            } catch (err) {
+              // Ignore position calculation error during map cleanup or resize
+            }
+          }
         });
 
         // Sort by horizontal screen position (X) ascending
@@ -312,6 +319,7 @@ export const MapCanvas: React.FC = () => {
           let marker = markersMapRef.current.get(f.id);
           const previousSide = labelSidesRef.current.get(f.id) || 'right';
           const isHovered = hoveredFlightRef.current?.id === f.id;
+          const previousHovered = hoverStatesRef.current.get(f.id) || false;
 
           if (!marker) {
             marker = L.marker([f.lat, f.lon], {
@@ -321,12 +329,14 @@ export const MapCanvas: React.FC = () => {
 
             markersMapRef.current.set(f.id, marker);
             labelSidesRef.current.set(f.id, labelSide);
+            hoverStatesRef.current.set(f.id, isHovered);
           } else {
             marker.setLatLng([f.lat, f.lon]);
-            // Re-create icon ONLY if the label side or hover state changed
-            if (previousSide !== labelSide) {
+            // Re-create icon if label side OR hover state changed
+            if (previousSide !== labelSide || previousHovered !== isHovered) {
               marker.setIcon(createPlaneIcon(f, isHovered, labelSide));
               labelSidesRef.current.set(f.id, labelSide);
+              hoverStatesRef.current.set(f.id, isHovered);
             }
           }
         });
@@ -350,29 +360,36 @@ export const MapCanvas: React.FC = () => {
     const mouseY = e.clientY;
     setMousePos({ x: mouseX, y: mouseY });
 
-    if (!mapRef.current) return;
     const map = mapRef.current;
+    if (!map || !(map as any)._loaded || !(map as any)._mapPane) return;
 
     let found: Flight | null = null;
     let minDist = 34; // 34px hit radius threshold
 
     flightsMapRef.current.forEach((f) => {
-      const pt = map.latLngToContainerPoint(L.latLng(f.lat, f.lon));
-      const dist = Math.hypot(pt.x - mouseX, pt.y - mouseY);
+      if (typeof f.lat !== 'number' || typeof f.lon !== 'number' || isNaN(f.lat) || isNaN(f.lon)) return;
+      try {
+        const pt = map.latLngToContainerPoint([f.lat, f.lon]);
+        const dist = Math.hypot(pt.x - mouseX, pt.y - mouseY);
 
-      if (dist < minDist) {
-        minDist = dist;
-        found = f;
+        if (dist < minDist) {
+          minDist = dist;
+          found = f;
+        }
+      } catch (err) {
+        // Safe guard against map container detachment or position calculation race conditions
       }
     });
 
-    if (found !== hoveredFlight) {
-      if (hoveredFlight) {
-        const prevMarker = markersMapRef.current.get(hoveredFlight.id);
+    const prevHovered = hoveredFlightRef.current;
+    if (found?.id !== prevHovered?.id) {
+      if (prevHovered) {
+        const prevMarker = markersMapRef.current.get(prevHovered.id);
         if (prevMarker) {
-          const side = labelSidesRef.current.get(hoveredFlight.id) || 'right';
-          prevMarker.setIcon(createPlaneIcon(hoveredFlight, false, side));
+          const side = labelSidesRef.current.get(prevHovered.id) || 'right';
+          prevMarker.setIcon(createPlaneIcon(prevHovered, false, side));
           prevMarker.setZIndexOffset(100);
+          hoverStatesRef.current.set(prevHovered.id, false);
         }
       }
       if (found) {
@@ -381,6 +398,7 @@ export const MapCanvas: React.FC = () => {
           const side = labelSidesRef.current.get(found.id) || 'right';
           newMarker.setIcon(createPlaneIcon(found, true, side));
           newMarker.setZIndexOffset(1000);
+          hoverStatesRef.current.set(found.id, true);
         }
       }
       hoveredFlightRef.current = found;

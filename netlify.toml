@@ -1,0 +1,16 @@
+[[redirects]]
+  from = "/api/flights/airplanes"
+  to = "https://api.airplanes.live/v2/point/47.6741/7.5679/30"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/flights/adsb"
+  to = "https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/30"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

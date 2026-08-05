@@ -153,10 +153,10 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
         <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-2">
           <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-sans">Flughöhe</span>
           <div className="text-sm font-bold text-white mt-0.5">
-            {flight.altitudeFeet.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">ft</span>
+            {(flight.altitudeFeet ?? 0).toLocaleString()} <span className="text-[10px] font-normal text-slate-400">ft</span>
           </div>
           <span className="text-[10px] text-slate-400 block mt-0.5">
-            ({flight.altitudeMeters.toLocaleString()} m)
+            ({(flight.altitudeMeters ?? 0).toLocaleString()} m)
           </span>
         </div>
 
@@ -167,10 +167,10 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
             <Gauge className="w-3 h-3 text-slate-500" />
           </div>
           <div className="text-sm font-bold text-white mt-0.5">
-            {flight.velocityKmh} <span className="text-[10px] font-normal text-slate-400">km/h</span>
+            {flight.velocityKmh ?? 0} <span className="text-[10px] font-normal text-slate-400">km/h</span>
           </div>
           <span className="text-[10px] text-slate-400 block mt-0.5">
-            ({flight.velocityKnots} kts)
+            ({flight.velocityKnots ?? 0} kts)
           </span>
         </div>
 
@@ -181,7 +181,7 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
             <Compass className="w-3 h-3 text-slate-500" />
           </div>
           <div className="text-sm font-bold text-white mt-0.5">
-            {flight.heading}° <span className="text-xs font-normal text-sky-300">{getCardinalHeading(flight.heading)}</span>
+            {flight.heading ?? 0}° <span className="text-xs font-normal text-sky-300">{getCardinalHeading(flight.heading ?? 0)}</span>
           </div>
         </div>
 
@@ -190,10 +190,10 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
           <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-sans">Steigrate</span>
           <div className="text-sm font-bold text-white mt-0.5 flex items-center justify-between">
             <span>
-              {flight.verticalRate > 0 ? `+${flight.verticalRate}` : flight.verticalRate}
+              {(flight.verticalRate ?? 0) > 0 ? `+${flight.verticalRate}` : (flight.verticalRate ?? 0)}
               <span className="text-[10px] font-normal text-slate-400"> m/s</span>
             </span>
-            {getVerticalIcon(flight.verticalRate)}
+            {getVerticalIcon(flight.verticalRate ?? 0)}
           </div>
         </div>
       </div>
