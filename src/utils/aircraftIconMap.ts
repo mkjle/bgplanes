@@ -94,16 +94,16 @@ const ICAO_TYPE_TO_ICON: Record<string, string> = {
   C680: 'cessna.svg',
   C750: 'cessna.svg',
 
-  // Propellers & General Aviation -> c0.svg
-  P28A: 'c0.svg',
-  P28U: 'c0.svg',
-  PA28: 'c0.svg',
-  PA34: 'c0.svg',
-  DA40: 'c0.svg',
-  DA42: 'c0.svg',
-  PC12: 'c0.svg',
-  PC24: 'c0.svg',
-  SR22: 'c0.svg',
+  // Propellers & General Aviation -> cessna.svg
+  P28A: 'cessna.svg',
+  P28U: 'cessna.svg',
+  PA28: 'cessna.svg',
+  PA34: 'cessna.svg',
+  DA40: 'cessna.svg',
+  DA42: 'cessna.svg',
+  PC12: 'cessna.svg',
+  PC24: 'cessna.svg',
+  SR22: 'cessna.svg',
 
   // Military Transport -> c130.svg
   C130: 'c130.svg',
@@ -238,7 +238,7 @@ export function getAircraftIconPath(flight: Partial<Flight>): string {
   if (modelName.includes('MD-11') || modelName.includes('DC-10')) return `${BASE_PATH}/md11.svg`;
 
   if (modelName.includes('PIPER') || modelName.includes('DIAMOND') || modelName.includes('PILATUS') || modelName.includes('STAR') || modelName.includes('SKYHAWK')) {
-    return `${BASE_PATH}/c0.svg`;
+    return `${BASE_PATH}/cessna.svg`;
   }
 
   // 3. Fallback to default a0.svg (for Beluga, A350, unknown models, etc.)
