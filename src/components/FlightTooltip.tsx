@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Flight } from '../types';
 import { Compass, Gauge, ArrowUpRight, ArrowDownRight, Minus, Globe, Building2, Plane } from 'lucide-react';
 import { getFlightMeta } from '../utils/airlineData';
@@ -22,26 +22,59 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
   const airlineName = flight.airline || meta.airline;
   const aircraftModel = flight.aircraftModel || meta.aircraftModel;
 
-  const tooltipWidth = 285;
-  const tooltipHeight = 275;
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Offset slightly from airplane position
-  let left = x + 24;
-  let top = y - 30;
+  // Initial estimate
+  const estimatedWidth = 288;
+  const estimatedHeight = 310;
+  let initLeft = x + 24;
+  let initTop = y - 30;
 
-  // Boundary collision prevention
-  if (left + tooltipWidth > canvasWidth - 16) {
-    left = x - tooltipWidth - 24;
+  if (initTop + estimatedHeight > canvasHeight - 16) {
+    initTop = Math.max(16, y - estimatedHeight - 16);
   }
-  if (left < 16) {
-    left = 16;
+  if (initLeft + estimatedWidth > canvasWidth - 16) {
+    initLeft = Math.max(16, x - estimatedWidth - 24);
   }
-  if (top + tooltipHeight > canvasHeight - 16) {
-    top = canvasHeight - tooltipHeight - 16;
-  }
-  if (top < 16) {
-    top = 16;
-  }
+
+  const [pos, setPos] = useState({ left: initLeft, top: initTop });
+
+  useLayoutEffect(() => {
+    if (!tooltipRef.current) return;
+    const rect = tooltipRef.current.getBoundingClientRect();
+    const width = rect.width || estimatedWidth;
+    const height = rect.height || estimatedHeight;
+
+    let calcLeft = x + 24;
+    let calcTop = y - 30;
+
+    // Flip above airplane if near bottom of viewport or extending past bottom
+    if (y + height / 2 > canvasHeight || calcTop + height > canvasHeight - 16) {
+      calcTop = y - height - 16;
+    }
+
+    // Flip to left of airplane if extending past right boundary
+    if (calcLeft + width > canvasWidth - 16) {
+      calcLeft = x - width - 24;
+    }
+
+    // Strict boundary clamps
+    if (calcTop + height > canvasHeight - 16) {
+      calcTop = canvasHeight - height - 16;
+    }
+    if (calcTop < 16) {
+      calcTop = 16;
+    }
+
+    if (calcLeft + width > canvasWidth - 16) {
+      calcLeft = canvasWidth - width - 16;
+    }
+    if (calcLeft < 16) {
+      calcLeft = 16;
+    }
+
+    setPos({ left: calcLeft, top: calcTop });
+  }, [x, y, canvasWidth, canvasHeight, flight.id]);
 
   const getCardinalHeading = (heading: number) => {
     const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
@@ -57,14 +90,15 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
 
   return (
     <div
+      ref={tooltipRef}
       style={{
         position: 'fixed',
-        left: `${left}px`,
-        top: `${top}px`,
+        left: `${pos.left}px`,
+        top: `${pos.top}px`,
         pointerEvents: 'none',
         userSelect: 'none',
       }}
-      className="z-[9999] w-72 bg-slate-950/95 border border-sky-500/30 rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.85)] backdrop-blur-md p-4 text-white font-sans tracking-tight pointer-events-none select-none"
+      className="z-[9999] w-72 max-h-[calc(100vh-32px)] overflow-y-auto bg-slate-950/95 border border-sky-500/30 rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.85)] backdrop-blur-md p-4 text-white font-sans tracking-tight pointer-events-none select-none"
     >
       {/* Top Bar: Callsign & Status Badge */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5">
