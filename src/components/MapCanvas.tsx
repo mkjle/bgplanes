@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { Flight } from '../types';
 import { WINTERSWEILER_CENTER, MAP_CENTER } from '../data/geoData';
 import { FlightTooltip } from './FlightTooltip';
+import { fetchClientFlights } from '../utils/clientFlightFetcher';
 
 interface RenderFlight extends Flight {
   prevLat: number;
@@ -141,12 +142,31 @@ export const MapCanvas: React.FC = () => {
 
     const fetchFlights = async () => {
       try {
-        const res = await fetch('/api/flights');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && Array.isArray(data.flights) && isMounted) {
-          const fetchedFlights: Flight[] = data.flights;
-          setIsLiveRadar(Boolean(data.isLiveRadar));
+        let fetchedFlights: Flight[] = [];
+        let isLive = false;
+
+        try {
+          const res = await fetch('/api/flights');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.flights)) {
+              fetchedFlights = data.flights;
+              isLive = Boolean(data.isLiveRadar);
+            }
+          }
+        } catch (serverErr) {
+          // /api/flights unavailable (e.g. Netlify static hosting)
+        }
+
+        // Fallback for static hosting (Netlify) or failed backend fetch
+        if (fetchedFlights.length === 0) {
+          const clientData = await fetchClientFlights();
+          fetchedFlights = clientData.flights;
+          isLive = clientData.isLiveRadar;
+        }
+
+        if (isMounted) {
+          setIsLiveRadar(isLive);
           setFlightCount(fetchedFlights.length);
 
           const activeIds = new Set<string>();
