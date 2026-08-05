@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Flight } from '../types';
-import { WINTERSWEILER_CENTER } from '../data/geoData';
+import { WINTERSWEILER_CENTER, MAP_CENTER } from '../data/geoData';
 import { FlightTooltip } from './FlightTooltip';
 
 interface RenderFlight extends Flight {
@@ -18,19 +18,21 @@ export const MapCanvas: React.FC = () => {
   const mapRef = useRef<L.Map | null>(null);
 
   const [hoveredFlight, setHoveredFlight] = useState<Flight | null>(null);
+  const hoveredFlightRef = useRef<Flight | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isLiveRadar, setIsLiveRadar] = useState<boolean>(false);
   const [flightCount, setFlightCount] = useState<number>(0);
 
-  // Map stores for active flights & Leaflet markers
+  // Map stores for active flights & Leaflet markers & label placement side
   const flightsMapRef = useRef<Map<string, RenderFlight>>(new Map());
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
+  const labelSidesRef = useRef<Map<string, 'left' | 'right'>>(new Map());
 
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
 
-  // Flawless, Symmetrical Commercial Jet SVG Icon (0 deg = North)
-  const createPlaneIcon = (f: Flight, isHovered: boolean) => {
+  // Flawless, Symmetrical Commercial Jet SVG Icon with Dynamic Label Side (left / right)
+  const createPlaneIcon = (f: Flight, isHovered: boolean, labelSide: 'right' | 'left' = 'right') => {
     const heading = f.heading || 0;
     const callsign = f.callsign || 'N/A';
     const altFeet = f.altitudeFeet || 0;
@@ -41,18 +43,23 @@ export const MapCanvas: React.FC = () => {
       ? 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.95))'
       : 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8))';
 
+    const isLeft = labelSide === 'left';
+    const labelStyle = isLeft
+      ? 'position: absolute; right: 48px; top: 4px; text-align: right; display: flex; flex-direction: column; align-items: flex-end;'
+      : 'position: absolute; left: 48px; top: 4px; text-align: left; display: flex; flex-direction: column; align-items: flex-start;';
+
     return L.divIcon({
       className: 'custom-airplane-marker',
       html: `
-        <div style="position: relative; display: flex; align-items: center; pointer-events: none; width: 150px; height: 44px; margin-left: -22px; margin-top: -22px;">
+        <div style="position: relative; width: 44px; height: 44px; pointer-events: none;">
           <!-- Sleek Rotatable Commercial Jet Silhouette -->
-          <div style="transform: rotate(${heading}deg); transform-origin: center center; filter: ${filterGlow}; transition: transform 0.1s linear; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <div style="transform: rotate(${heading}deg); transform-origin: center center; filter: ${filterGlow}; transition: transform 0.1s linear; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="${planeColor}" stroke="${strokeColor}" stroke-width="0.8" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2 C11.2 2 10.5 4.5 10.5 7 L10.5 10.5 L1.5 14 L1.5 16 L10.5 14.5 L10.5 19.5 L7.5 21.5 L7.5 23 L12 22 L16.5 23 L16.5 21.5 L13.5 19.5 L13.5 14.5 L22.5 16 L22.5 14 L13.5 10.5 L13.5 7 C13.5 4.5 12.8 2 12 2 Z" />
             </svg>
           </div>
-          <!-- Callsign & Altitude Badge -->
-          <div style="margin-left: 6px; display: flex; flex-direction: column; pointer-events: none; text-shadow: 0 1px 4px #000000, 0 0 3px #000000;">
+          <!-- Callsign & Altitude Badge (Placed Left or Right to avoid overlapping) -->
+          <div style="${labelStyle} pointer-events: none; text-shadow: 0 1px 4px #000000, 0 0 3px #000000; white-space: nowrap;">
             <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 800; color: ${isHovered ? '#38bdf8' : '#f8fafc'}; letter-spacing: 0.5px; line-height: 1.2;">
               ${callsign}
             </span>
@@ -62,7 +69,7 @@ export const MapCanvas: React.FC = () => {
           </div>
         </div>
       `,
-      iconSize: [150, 44],
+      iconSize: [44, 44],
       iconAnchor: [22, 22],
     });
   };
@@ -72,7 +79,7 @@ export const MapCanvas: React.FC = () => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
-      center: [WINTERSWEILER_CENTER.lat, WINTERSWEILER_CENTER.lon],
+      center: [MAP_CENTER.lat, MAP_CENTER.lon],
       zoom: 12,
       zoomControl: false,
       dragging: false,
@@ -223,12 +230,14 @@ export const MapCanvas: React.FC = () => {
     };
   }, []);
 
-  // 3. Smooth 60FPS Flight Motion Interpolation & Leaflet Marker Sync
+  // 3. Smooth 60FPS Flight Motion Interpolation & Leaflet Marker Sync with Dynamic Label Deconfliction
   useEffect(() => {
     const updateLoop = (now: number) => {
       const map = mapRef.current;
 
       if (map) {
+        const flightPositions: { flight: RenderFlight; x: number; y: number; labelSide: 'right' | 'left' }[] = [];
+
         flightsMapRef.current.forEach((f) => {
           const elapsed = now - f.lastUpdate;
           const duration = f.updateDuration || 2000;
@@ -256,18 +265,49 @@ export const MapCanvas: React.FC = () => {
             }
           }
 
-          // Sync Leaflet marker position smoothly
+          const pt = map.latLngToContainerPoint(L.latLng(f.lat, f.lon));
+          flightPositions.push({ flight: f, x: pt.x, y: pt.y, labelSide: 'right' });
+        });
+
+        // Sort by horizontal screen position (X) ascending
+        flightPositions.sort((a, b) => a.x - b.x);
+
+        // Deconflict overlapping airplane labels
+        // If airplane A is to the left of airplane B (dx < 120px) and at similar height (dy < 36px),
+        // flip airplane A's label to the LEFT side so it extends away from airplane B.
+        for (let i = 0; i < flightPositions.length; i++) {
+          const itemA = flightPositions[i];
+          for (let j = i + 1; j < flightPositions.length; j++) {
+            const itemB = flightPositions[j];
+            const dx = itemB.x - itemA.x;
+            const dy = Math.abs(itemB.y - itemA.y);
+            if (dx < 120 && dy < 36) {
+              itemA.labelSide = 'left';
+            }
+          }
+        }
+
+        // Render & Update Leaflet markers
+        flightPositions.forEach(({ flight: f, labelSide }) => {
           let marker = markersMapRef.current.get(f.id);
+          const previousSide = labelSidesRef.current.get(f.id) || 'right';
+          const isHovered = hoveredFlightRef.current?.id === f.id;
 
           if (!marker) {
             marker = L.marker([f.lat, f.lon], {
-              icon: createPlaneIcon(f, false),
+              icon: createPlaneIcon(f, isHovered, labelSide),
               interactive: false,
             }).addTo(map);
 
             markersMapRef.current.set(f.id, marker);
+            labelSidesRef.current.set(f.id, labelSide);
           } else {
             marker.setLatLng([f.lat, f.lon]);
+            // Re-create icon ONLY if the label side or hover state changed
+            if (previousSide !== labelSide) {
+              marker.setIcon(createPlaneIcon(f, isHovered, labelSide));
+              labelSidesRef.current.set(f.id, labelSide);
+            }
           }
         });
       }
@@ -310,17 +350,20 @@ export const MapCanvas: React.FC = () => {
       if (hoveredFlight) {
         const prevMarker = markersMapRef.current.get(hoveredFlight.id);
         if (prevMarker) {
-          prevMarker.setIcon(createPlaneIcon(hoveredFlight, false));
+          const side = labelSidesRef.current.get(hoveredFlight.id) || 'right';
+          prevMarker.setIcon(createPlaneIcon(hoveredFlight, false, side));
           prevMarker.setZIndexOffset(100);
         }
       }
       if (found) {
         const newMarker = markersMapRef.current.get(found.id);
         if (newMarker) {
-          newMarker.setIcon(createPlaneIcon(found, true));
+          const side = labelSidesRef.current.get(found.id) || 'right';
+          newMarker.setIcon(createPlaneIcon(found, true, side));
           newMarker.setZIndexOffset(1000);
         }
       }
+      hoveredFlightRef.current = found;
       setHoveredFlight(found);
     }
   };

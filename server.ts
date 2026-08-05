@@ -41,11 +41,11 @@ async function fetchLiveFlightData() {
 
   // Run both fetch requests in parallel
   const [adsbRes, fr24Res] = await Promise.allSettled([
-    // 1. ADSB.lol (12 Nautical Miles radius ~22km around Wintersweiler 47.6322, 7.5683)
+    // 1. ADSB.lol (15 Nautical Miles radius ~27km around Wintersweiler 47.6741, 7.5679)
     (async () => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch("https://api.adsb.lol/v2/lat/47.6322/lon/7.5683/dist/12", {
+      const res = await fetch("https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/15", {
         signal: controller.signal,
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DreilanderRadar/1.0",
@@ -60,7 +60,7 @@ async function fetchLiveFlightData() {
     (async () => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch("https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.76,47.50,7.38,7.76", {
+      const res = await fetch("https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.80,47.52,7.38,7.76", {
         signal: controller.signal,
         headers: { "User-Agent": "Mozilla/5.0" },
       });
@@ -74,9 +74,9 @@ async function fetchLiveFlightData() {
     adsbRes.value.ac.forEach((ac: any) => {
       if (!ac.lat || !ac.lon) return;
 
-      // Strict 16km radius check around Wintersweiler (47.6322, 7.5683)
-      const distKm = Math.hypot((ac.lat - 47.6322) * 111, (ac.lon - 7.5683) * 75);
-      if (distKm > 16) return;
+      // 18km radius check around Wintersweiler (47.6741, 7.5679)
+      const distKm = Math.hypot((ac.lat - 47.6741) * 111, (ac.lon - 7.5679) * 75);
+      if (distKm > 18) return;
 
       const id = (ac.hex || "").trim().toLowerCase();
       if (!id) return;
@@ -159,9 +159,9 @@ async function fetchLiveFlightData() {
         const lon = item[2];
         if (!lat || !lon) return;
 
-        // Strict 16km radius check around Wintersweiler
-        const distKm = Math.hypot((lat - 47.6322) * 111, (lon - 7.5683) * 75);
-        if (distKm > 16) return;
+        // 18km radius check around Wintersweiler (47.6741, 7.5679)
+        const distKm = Math.hypot((lat - 47.6741) * 111, (lon - 7.5679) * 75);
+        if (distKm > 18) return;
 
         const heading = item[3] || 0;
         const altFeetRaw = item[4] || 0;

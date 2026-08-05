@@ -1,9 +1,15 @@
 import { GeoFeature, Point } from '../types';
 
-// Wintersweiler Center
+// Wintersweiler Center (District of Efringen-Kirchen, Baden-Württemberg: 47.6741° N, 7.5679° E)
 export const WINTERSWEILER_CENTER: Point = {
-  lat: 47.6322,
-  lon: 7.5683,
+  lat: 47.6741,
+  lon: 7.5679,
+};
+
+// Map View Center (Shifted ~0.028° south so Wintersweiler sits ~2cm higher on screen, revealing more southern area)
+export const MAP_CENTER: Point = {
+  lat: 47.6460,
+  lon: 7.5679,
 };
 
 // Dreiländereck Monument (Tripoint DE / CH / FR)
@@ -188,10 +194,9 @@ export const GEO_FEATURES: GeoFeature[] = [
     type: 'road',
     category: 'local-road',
     coordinates: [
-      { lat: 47.635, lon: 7.562 }, // Efringen-Kirchen
-      { lat: 47.6322, lon: 7.5683 }, // Wintersweiler Dorfzentrum
-      { lat: 47.629, lon: 7.578 }, // towards Egringen
-      { lat: 47.630, lon: 7.590 }, // Egringen
+      { lat: 47.6535, lon: 7.5640 }, // Efringen-Kirchen
+      { lat: 47.6741, lon: 7.5679 }, // Wintersweiler Dorfzentrum
+      { lat: 47.6580, lon: 7.5900 }, // towards Egringen
     ],
   },
   // Road: Wintersweiler -> Welmlingen -> Mappach
@@ -201,9 +206,9 @@ export const GEO_FEATURES: GeoFeature[] = [
     type: 'road',
     category: 'local-road',
     coordinates: [
-      { lat: 47.6322, lon: 7.5683 }, // Wintersweiler
-      { lat: 47.642, lon: 7.568 }, // Welmlingen
-      { lat: 47.648, lon: 7.575 }, // Mappach
+      { lat: 47.6741, lon: 7.5679 }, // Wintersweiler
+      { lat: 47.6650, lon: 7.5680 }, // Welmlingen
+      { lat: 47.6850, lon: 7.5850 }, // Mappach
     ],
   },
   // Road: Wintersweiler -> Huttingen -> Blansingen
@@ -213,9 +218,9 @@ export const GEO_FEATURES: GeoFeature[] = [
     type: 'road',
     category: 'local-road',
     coordinates: [
-      { lat: 47.6322, lon: 7.5683 }, // Wintersweiler
-      { lat: 47.645, lon: 7.550 }, // Huttingen
-      { lat: 47.653, lon: 7.545 }, // Blansingen
+      { lat: 47.6741, lon: 7.5679 }, // Wintersweiler
+      { lat: 47.6620, lon: 7.5500 }, // Huttingen
+      { lat: 47.6940, lon: 7.5450 }, // Blansingen
     ],
   },
   // Road: Wintersweiler -> Fischingen
@@ -225,9 +230,9 @@ export const GEO_FEATURES: GeoFeature[] = [
     type: 'road',
     category: 'local-road',
     coordinates: [
-      { lat: 47.6322, lon: 7.5683 }, // Wintersweiler
-      { lat: 47.620, lon: 7.575 }, // Fischingen
-      { lat: 47.608, lon: 7.585 }, // Binzen
+      { lat: 47.6741, lon: 7.5679 }, // Wintersweiler
+      { lat: 47.6520, lon: 7.5950 }, // Fischingen
+      { lat: 47.6300, lon: 7.5900 }, // Binzen / Eimeldingen
     ],
   },
   // Lörrach - Weil Connection (Wiese River valley road)
@@ -255,20 +260,20 @@ export interface TownMarker {
 }
 
 export const TOWNS: TownMarker[] = [
-  { name: 'WINTERSWEILER', lat: 47.6322, lon: 7.5683, country: 'DE', isFocus: true },
-  { name: 'Efringen-Kirchen', lat: 47.6350, lon: 7.5620, country: 'DE' },
-  { name: 'Egringen', lat: 47.6300, lon: 7.5900, country: 'DE' },
-  { name: 'Welmlingen', lat: 47.6420, lon: 7.5680, country: 'DE' },
-  { name: 'Huttingen', lat: 47.6450, lon: 7.5500, country: 'DE' },
-  { name: 'Blansingen', lat: 47.6530, lon: 7.5450, country: 'DE' },
-  { name: 'Fischingen', lat: 47.6200, lon: 7.5750, country: 'DE' },
-  { name: 'Eimeldingen', lat: 47.6250, lon: 7.5800, country: 'DE' },
-  { name: 'Istein', lat: 47.6380, lon: 7.5320, country: 'DE' },
+  { name: 'WINTERSWEILER', lat: 47.6741, lon: 7.5679, country: 'DE', isFocus: true },
+  { name: 'Efringen-Kirchen', lat: 47.6535, lon: 7.5640, country: 'DE' },
+  { name: 'Welmlingen', lat: 47.6650, lon: 7.5680, country: 'DE' },
+  { name: 'Huttingen', lat: 47.6620, lon: 7.5500, country: 'DE' },
+  { name: 'Egringen', lat: 47.6580, lon: 7.5900, country: 'DE' },
+  { name: 'Blansingen', lat: 47.6940, lon: 7.5450, country: 'DE' },
+  { name: 'Fischingen', lat: 47.6520, lon: 7.5950, country: 'DE' },
+  { name: 'Eimeldingen', lat: 47.6300, lon: 7.5900, country: 'DE' },
+  { name: 'Istein', lat: 47.6430, lon: 7.5340, country: 'DE' },
   { name: 'Haltingen', lat: 47.6100, lon: 7.5950, country: 'DE' },
   { name: 'Weil am Rhein', lat: 47.5950, lon: 7.6100, country: 'DE' },
   { name: 'Lörrach', lat: 47.6150, lon: 7.6600, country: 'DE' },
   { name: 'Kandern', lat: 47.7120, lon: 7.6600, country: 'DE' },
-  { name: 'Bad Bellingen', lat: 47.6950, lon: 7.5380, country: 'DE' },
+  { name: 'Bad Bellingen', lat: 47.7300, lon: 7.5380, country: 'DE' },
 
   // Switzerland
   { name: 'BASEL', lat: 47.5580, lon: 7.5900, country: 'CH' },
