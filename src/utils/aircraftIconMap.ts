@@ -195,52 +195,93 @@ const ICAO_TYPE_TO_ICON: Record<string, string> = {
   MD90: 'md11.svg',
 };
 
+export interface AircraftIconInfo {
+  key: string;
+  filename: string;
+  label: string;
+  category: string;
+  defaultColor: string;
+}
+
+export const ALL_AIRCRAFT_ICONS: AircraftIconInfo[] = [
+  { key: 'a0.svg', filename: 'a0.svg', label: 'A0 - Standard / Beluga / Unmapped', category: 'Default', defaultColor: '#ffffff' },
+  { key: 'a320.svg', filename: 'a320.svg', label: 'Airbus A320 Family (A319/A320/A321/A220)', category: 'Airbus', defaultColor: '#ffffff' },
+  { key: 'a330.svg', filename: 'a330.svg', label: 'Airbus A330', category: 'Airbus', defaultColor: '#ffffff' },
+  { key: 'a340.svg', filename: 'a340.svg', label: 'Airbus A340', category: 'Airbus', defaultColor: '#ffffff' },
+  { key: 'a380.svg', filename: 'a380.svg', label: 'Airbus A380 Superjumbo', category: 'Airbus', defaultColor: '#ffffff' },
+  { key: 'b737.svg', filename: 'b737.svg', label: 'Boeing 737 / MAX', category: 'Boeing', defaultColor: '#ffffff' },
+  { key: 'b747.svg', filename: 'b747.svg', label: 'Boeing 747 Jumbo Jet', category: 'Boeing', defaultColor: '#ffffff' },
+  { key: 'b767.svg', filename: 'b767.svg', label: 'Boeing 767', category: 'Boeing', defaultColor: '#ffffff' },
+  { key: 'b777.svg', filename: 'b777.svg', label: 'Boeing 777 Widebody', category: 'Boeing', defaultColor: '#ffffff' },
+  { key: 'b787.svg', filename: 'b787.svg', label: 'Boeing 787 Dreamliner', category: 'Boeing', defaultColor: '#ffffff' },
+  { key: 'c130.svg', filename: 'c130.svg', label: 'C-130 Hercules / Military Transport', category: 'Military', defaultColor: '#ffffff' },
+  { key: 'cessna.svg', filename: 'cessna.svg', label: 'Cessna / Propellers & General Aviation', category: 'General Aviation', defaultColor: '#ffffff' },
+  { key: 'crjx.svg', filename: 'crjx.svg', label: 'Bombardier CRJ Series', category: 'Regional', defaultColor: '#ffffff' },
+  { key: 'dh8a.svg', filename: 'dh8a.svg', label: 'Dash 8 / ATR Turboprop', category: 'Regional', defaultColor: '#ffffff' },
+  { key: 'e195.svg', filename: 'e195.svg', label: 'Embraer E-Jets (E190/E195)', category: 'Regional', defaultColor: '#ffffff' },
+  { key: 'erj.svg', filename: 'erj.svg', label: 'Embraer ERJ Regional Jet', category: 'Regional', defaultColor: '#ffffff' },
+  { key: 'f100.svg', filename: 'f100.svg', label: 'Fokker 70 / 100', category: 'Regional', defaultColor: '#ffffff' },
+  { key: 'f11.svg', filename: 'f11.svg', label: 'Jet Trainer / Light Fighter', category: 'Military', defaultColor: '#ffffff' },
+  { key: 'f15.svg', filename: 'f15.svg', label: 'Fighter Jet (F-15/F-16/EF2000)', category: 'Military', defaultColor: '#ffffff' },
+  { key: 'f5.svg', filename: 'f5.svg', label: 'F-5 Tiger Fighter Jet', category: 'Military', defaultColor: '#ffffff' },
+  { key: 'fa7x.svg', filename: 'fa7x.svg', label: 'Dassault Falcon Business Jet', category: 'Business Jet', defaultColor: '#ffffff' },
+  { key: 'glf5.svg', filename: 'glf5.svg', label: 'Gulfstream G550 / G650', category: 'Business Jet', defaultColor: '#ffffff' },
+  { key: 'learjet.svg', filename: 'learjet.svg', label: 'Bombardier Learjet', category: 'Business Jet', defaultColor: '#ffffff' },
+  { key: 'md11.svg', filename: 'md11.svg', label: 'MD-11 / DC-10 Trijet', category: 'Cargo & Widebody', defaultColor: '#ffffff' },
+];
+
 /**
- * Returns the SVG icon file path for a given flight or aircraft type model.
- * If no specific model icon exists (e.g. Beluga, A350, unknown), falls back to "a0.svg".
+ * Returns the SVG icon filename for a given flight or aircraft model.
  */
-export function getAircraftIconPath(flight: Partial<Flight>): string {
+export function getAircraftIconFilename(flight: Partial<Flight>): string {
   const typeCode = (flight.aircraftTypeCode || '').trim().toUpperCase();
   const meta = getFlightMeta(flight);
   const modelName = (flight.aircraftModel || meta.aircraftModel || '').toUpperCase();
 
   // 1. Direct ICAO Type Code Lookup
   if (typeCode && ICAO_TYPE_TO_ICON[typeCode]) {
-    return `${BASE_PATH}/${ICAO_TYPE_TO_ICON[typeCode]}`;
+    return ICAO_TYPE_TO_ICON[typeCode];
   }
 
   // 2. Pattern or Keyword match in model string
   if (modelName.includes('A320') || modelName.includes('A321') || modelName.includes('A319') || modelName.includes('A318') || modelName.includes('A220')) {
-    return `${BASE_PATH}/a320.svg`;
+    return 'a320.svg';
   }
-  if (modelName.includes('A330')) return `${BASE_PATH}/a330.svg`;
-  if (modelName.includes('A340')) return `${BASE_PATH}/a340.svg`;
-  if (modelName.includes('A380')) return `${BASE_PATH}/a380.svg`;
+  if (modelName.includes('A330')) return 'a330.svg';
+  if (modelName.includes('A340')) return 'a340.svg';
+  if (modelName.includes('A380')) return 'a380.svg';
 
   if (modelName.includes('737') || modelName.includes('B738') || modelName.includes('MAX 8') || modelName.includes('MAX 9')) {
-    return `${BASE_PATH}/b737.svg`;
+    return 'b737.svg';
   }
-  if (modelName.includes('747')) return `${BASE_PATH}/b747.svg`;
-  if (modelName.includes('767')) return `${BASE_PATH}/b767.svg`;
-  if (modelName.includes('777')) return `${BASE_PATH}/b777.svg`;
-  if (modelName.includes('787') || modelName.includes('DREAMLINER')) return `${BASE_PATH}/b787.svg`;
+  if (modelName.includes('747')) return 'b747.svg';
+  if (modelName.includes('767')) return 'b767.svg';
+  if (modelName.includes('777')) return 'b777.svg';
+  if (modelName.includes('787') || modelName.includes('DREAMLINER')) return 'b787.svg';
 
-  if (modelName.includes('CESSNA') || modelName.includes('CITATION')) return `${BASE_PATH}/cessna.svg`;
-  if (modelName.includes('GULFSTREAM') || modelName.includes('G650') || modelName.includes('G550')) return `${BASE_PATH}/glf5.svg`;
-  if (modelName.includes('FALCON')) return `${BASE_PATH}/fa7x.svg`;
-  if (modelName.includes('LEARJET')) return `${BASE_PATH}/learjet.svg`;
-  if (modelName.includes('EMBRAER') || modelName.includes('E190') || modelName.includes('E195') || modelName.includes('E175')) return `${BASE_PATH}/e195.svg`;
-  if (modelName.includes('ERJ')) return `${BASE_PATH}/erj.svg`;
-  if (modelName.includes('CRJ')) return `${BASE_PATH}/crjx.svg`;
-  if (modelName.includes('DASH 8') || modelName.includes('Q400') || modelName.includes('ATR')) return `${BASE_PATH}/dh8a.svg`;
-  if (modelName.includes('FOKKER')) return `${BASE_PATH}/f100.svg`;
-  if (modelName.includes('HERCULES') || modelName.includes('C-130')) return `${BASE_PATH}/c130.svg`;
-  if (modelName.includes('MD-11') || modelName.includes('DC-10')) return `${BASE_PATH}/md11.svg`;
+  if (modelName.includes('CESSNA') || modelName.includes('CITATION')) return 'cessna.svg';
+  if (modelName.includes('GULFSTREAM') || modelName.includes('G650') || modelName.includes('G550')) return 'glf5.svg';
+  if (modelName.includes('FALCON')) return 'fa7x.svg';
+  if (modelName.includes('LEARJET')) return 'learjet.svg';
+  if (modelName.includes('EMBRAER') || modelName.includes('E190') || modelName.includes('E195') || modelName.includes('E175')) return 'e195.svg';
+  if (modelName.includes('ERJ')) return 'erj.svg';
+  if (modelName.includes('CRJ')) return 'crjx.svg';
+  if (modelName.includes('DASH 8') || modelName.includes('Q400') || modelName.includes('ATR')) return 'dh8a.svg';
+  if (modelName.includes('FOKKER')) return 'f100.svg';
+  if (modelName.includes('HERCULES') || modelName.includes('C-130')) return 'c130.svg';
+  if (modelName.includes('MD-11') || modelName.includes('DC-10')) return 'md11.svg';
 
   if (modelName.includes('PIPER') || modelName.includes('DIAMOND') || modelName.includes('PILATUS') || modelName.includes('STAR') || modelName.includes('SKYHAWK')) {
-    return `${BASE_PATH}/cessna.svg`;
+    return 'cessna.svg';
   }
 
-  // 3. Fallback to default a0.svg (for Beluga, A350, unknown models, etc.)
-  return `${BASE_PATH}/a0.svg`;
+  // 3. Fallback to default a0.svg
+  return 'a0.svg';
+}
+
+/**
+ * Returns the SVG icon file path for a given flight or aircraft type model.
+ */
+export function getAircraftIconPath(flight: Partial<Flight>): string {
+  return `${BASE_PATH}/${getAircraftIconFilename(flight)}`;
 }

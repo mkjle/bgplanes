@@ -3,8 +3,9 @@ import L from 'leaflet';
 import { Flight } from '../types';
 import { WINTERSWEILER_CENTER, MAP_CENTER } from '../data/geoData';
 import { FlightTooltip } from './FlightTooltip';
+import { AircraftColorMenu } from './AircraftColorMenu';
 import { fetchClientFlights } from '../utils/clientFlightFetcher';
-import { getAircraftIconPath } from '../utils/aircraftIconMap';
+import { getAircraftIconFilename } from '../utils/aircraftIconMap';
 
 interface RenderFlight extends Flight {
   prevLat: number;
@@ -25,6 +26,19 @@ export const MapCanvas: React.FC = () => {
   const [isLiveRadar, setIsLiveRadar] = useState<boolean>(false);
   const [flightCount, setFlightCount] = useState<number>(0);
 
+  // Model-specific custom colors state
+  const [iconColors, setIconColors] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('aircraft_icon_colors');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const iconColorsRef = useRef<Record<string, string>>(iconColors);
+  iconColorsRef.current = iconColors;
+
   // Map stores for active flights & Leaflet markers & label placement side & hover status
   const flightsMapRef = useRef<Map<string, RenderFlight>>(new Map());
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
@@ -34,16 +48,25 @@ export const MapCanvas: React.FC = () => {
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
 
-  // Rotatable Aircraft SVG Icon matched to model with Dynamic Label Side (left / right)
-  const createPlaneIcon = (f: Flight, isHovered: boolean, labelSide: 'right' | 'left' = 'right') => {
+  // Rotatable Aircraft SVG Icon matched to model with Dynamic Label Side & Custom Colors
+  const createPlaneIcon = (
+    f: Flight,
+    isHovered: boolean,
+    labelSide: 'right' | 'left' = 'right',
+    customColors?: Record<string, string>
+  ) => {
     const heading = f.heading || 0;
     const callsign = f.callsign || 'N/A';
     const altFeet = f.altitudeFeet || 0;
-    const iconPath = getAircraftIconPath(f);
+    const iconFilename = getAircraftIconFilename(f);
+    const iconPath = `/assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/${iconFilename}`;
 
-    const filterStyle = isHovered
-      ? 'filter: brightness(0) invert(65%) sepia(85%) saturate(2500%) hue-rotate(165deg) contrast(100%) drop-shadow(0 0 10px #38bdf8);'
-      : 'filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85));';
+    const colors = customColors || iconColorsRef.current;
+    const modelColor = colors[iconFilename] || '#ffffff';
+
+    const filterGlow = isHovered
+      ? `drop-shadow(0 0 12px ${modelColor}) brightness(1.2)`
+      : `drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85))`;
 
     const isLeft = labelSide === 'left';
     const labelStyle = isLeft
@@ -54,16 +77,16 @@ export const MapCanvas: React.FC = () => {
       className: 'custom-airplane-marker',
       html: `
         <div style="position: relative; width: 44px; height: 44px; pointer-events: none;">
-          <!-- Rotatable Aircraft Model SVG Silhouette -->
+          <!-- Rotatable Aircraft Model SVG Silhouette with Model Color -->
           <div style="transform: rotate(${heading}deg); transform-origin: center center; transition: transform 0.1s linear; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-            <img src="${iconPath}" style="width: 36px; height: 36px; object-fit: contain; ${filterStyle}" alt="aircraft" />
+            <div style="width: 36px; height: 36px; background-color: ${modelColor}; mask-image: url('${iconPath}'); -webkit-mask-image: url('${iconPath}'); mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; filter: ${filterGlow};"></div>
           </div>
           <!-- Callsign & Altitude Badge (Placed Left or Right to avoid overlapping) -->
           <div style="${labelStyle} pointer-events: none; text-shadow: 0 1px 4px #000000, 0 0 3px #000000; white-space: nowrap;">
-            <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 800; color: ${isHovered ? '#38bdf8' : '#f8fafc'}; letter-spacing: 0.5px; line-height: 1.2;">
+            <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 800; color: ${isHovered ? modelColor : '#f8fafc'}; letter-spacing: 0.5px; line-height: 1.2;">
               ${callsign}
             </span>
-            <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10px; font-weight: 600; color: ${isHovered ? '#7dd3fc' : 'rgba(255, 255, 255, 0.75)'}; line-height: 1.2;">
+            <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10px; font-weight: 600; color: ${isHovered ? modelColor : 'rgba(255, 255, 255, 0.75)'}; line-height: 1.2;">
               ${altFeet} ft
             </span>
           </div>
@@ -71,6 +94,20 @@ export const MapCanvas: React.FC = () => {
       `,
       iconSize: [44, 44],
       iconAnchor: [22, 22],
+    });
+  };
+
+  const handleColorsChange = (newColors: Record<string, string>) => {
+    setIconColors(newColors);
+    iconColorsRef.current = newColors;
+    // Instantly update icons for all active flight markers on Leaflet map
+    markersMapRef.current.forEach((marker, flightId) => {
+      const flight = flightsMapRef.current.get(flightId);
+      if (flight) {
+        const isHovered = hoverStatesRef.current.get(flightId) || false;
+        const side = labelSidesRef.current.get(flightId) || 'right';
+        marker.setIcon(createPlaneIcon(flight, isHovered, side, newColors));
+      }
     });
   };
 
@@ -417,7 +454,13 @@ export const MapCanvas: React.FC = () => {
         className="absolute inset-0 w-full h-full bg-slate-950"
       />
 
-      {/* 2. Hover Details Tooltip Card (Only rendered when cursor is over an airplane) */}
+      {/* 2. Invisible-until-hovered Aircraft Icon Color Customizer Menu in Top-Left Corner */}
+      <AircraftColorMenu
+        iconColors={iconColors}
+        onColorsChange={handleColorsChange}
+      />
+
+      {/* 3. Hover Details Tooltip Card (Only rendered when cursor is over an airplane) */}
       {hoveredFlight && (
         <FlightTooltip
           flight={hoveredFlight}
@@ -425,6 +468,7 @@ export const MapCanvas: React.FC = () => {
           y={mousePos.y}
           canvasWidth={window.innerWidth}
           canvasHeight={window.innerHeight}
+          iconColors={iconColors}
         />
       )}
     </div>

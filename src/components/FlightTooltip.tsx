@@ -2,7 +2,7 @@ import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Flight } from '../types';
 import { Compass, Gauge, ArrowUpRight, ArrowDownRight, Minus, Globe, Building2 } from 'lucide-react';
 import { getFlightMeta } from '../utils/airlineData';
-import { getAircraftIconPath } from '../utils/aircraftIconMap';
+import { getAircraftIconFilename } from '../utils/aircraftIconMap';
 
 interface FlightTooltipProps {
   flight: Flight;
@@ -10,6 +10,7 @@ interface FlightTooltipProps {
   y: number;
   canvasWidth: number;
   canvasHeight: number;
+  iconColors?: Record<string, string>;
 }
 
 export const FlightTooltip: React.FC<FlightTooltipProps> = ({
@@ -18,10 +19,15 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
   y,
   canvasWidth,
   canvasHeight,
+  iconColors = {},
 }) => {
   const meta = getFlightMeta(flight);
   const airlineName = flight.airline || meta.airline;
   const aircraftModel = flight.aircraftModel || meta.aircraftModel;
+
+  const iconFilename = getAircraftIconFilename(flight);
+  const iconPath = `/assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/${iconFilename}`;
+  const customColor = iconColors[iconFilename] || '#ffffff';
 
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -104,12 +110,23 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
       {/* Top Bar: Callsign & Status Badge */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-950/80 flex items-center justify-center border border-sky-500/40 shrink-0 p-1">
-            <img
-              src={getAircraftIconPath(flight)}
-              className="w-full h-full object-contain filter invert brightness-200"
-              style={{ transform: `rotate(${flight.heading}deg)` }}
-              alt="Flugzeug-Icon"
+          <div className="w-8 h-8 rounded-lg bg-sky-950/80 flex items-center justify-center border border-sky-500/40 shrink-0 p-1 shadow-inner">
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                backgroundColor: customColor,
+                maskImage: `url('${iconPath}')`,
+                WebkitMaskImage: `url('${iconPath}')`,
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center',
+                transform: `rotate(${flight.heading}deg)`,
+                filter: `drop-shadow(0 0 5px ${customColor}aa)`,
+              }}
             />
           </div>
           <div>
