@@ -1,0 +1,6 @@
+{
+  "name": "Dreiländereck Live Flight Map",
+  "description": "Schwarz-weiß Outline-Karte des Dreiländerecks (Wintersweiler) mit flüssig bewegten Live-Flugzeugen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
