@@ -4,6 +4,7 @@ import { Flight } from '../types';
 import { WINTERSWEILER_CENTER, MAP_CENTER } from '../data/geoData';
 import { FlightTooltip } from './FlightTooltip';
 import { fetchClientFlights } from '../utils/clientFlightFetcher';
+import { getAircraftIconPath } from '../utils/aircraftIconMap';
 
 interface RenderFlight extends Flight {
   prevLat: number;
@@ -33,17 +34,16 @@ export const MapCanvas: React.FC = () => {
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
 
-  // Flawless, Symmetrical Commercial Jet SVG Icon with Dynamic Label Side (left / right)
+  // Rotatable Aircraft SVG Icon matched to model with Dynamic Label Side (left / right)
   const createPlaneIcon = (f: Flight, isHovered: boolean, labelSide: 'right' | 'left' = 'right') => {
     const heading = f.heading || 0;
     const callsign = f.callsign || 'N/A';
     const altFeet = f.altitudeFeet || 0;
+    const iconPath = getAircraftIconPath(f);
 
-    const planeColor = isHovered ? '#38bdf8' : '#ffffff';
-    const strokeColor = isHovered ? '#0284c7' : '#0f172a';
-    const filterGlow = isHovered
-      ? 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.95))'
-      : 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8))';
+    const filterStyle = isHovered
+      ? 'filter: brightness(0) invert(65%) sepia(85%) saturate(2500%) hue-rotate(165deg) contrast(100%) drop-shadow(0 0 10px #38bdf8);'
+      : 'filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85));';
 
     const isLeft = labelSide === 'left';
     const labelStyle = isLeft
@@ -54,11 +54,9 @@ export const MapCanvas: React.FC = () => {
       className: 'custom-airplane-marker',
       html: `
         <div style="position: relative; width: 44px; height: 44px; pointer-events: none;">
-          <!-- Sleek Rotatable Commercial Jet Silhouette -->
-          <div style="transform: rotate(${heading}deg); transform-origin: center center; filter: ${filterGlow}; transition: transform 0.1s linear; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="${planeColor}" stroke="${strokeColor}" stroke-width="0.8" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2 C11.2 2 10.5 4.5 10.5 7 L10.5 10.5 L1.5 14 L1.5 16 L10.5 14.5 L10.5 19.5 L7.5 21.5 L7.5 23 L12 22 L16.5 23 L16.5 21.5 L13.5 19.5 L13.5 14.5 L22.5 16 L22.5 14 L13.5 10.5 L13.5 7 C13.5 4.5 12.8 2 12 2 Z" />
-            </svg>
+          <!-- Rotatable Aircraft Model SVG Silhouette -->
+          <div style="transform: rotate(${heading}deg); transform-origin: center center; transition: transform 0.1s linear; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+            <img src="${iconPath}" style="width: 36px; height: 36px; object-fit: contain; ${filterStyle}" alt="aircraft" />
           </div>
           <!-- Callsign & Altitude Badge (Placed Left or Right to avoid overlapping) -->
           <div style="${labelStyle} pointer-events: none; text-shadow: 0 1px 4px #000000, 0 0 3px #000000; white-space: nowrap;">

@@ -1,7 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Flight } from '../types';
-import { Compass, Gauge, ArrowUpRight, ArrowDownRight, Minus, Globe, Building2, Plane } from 'lucide-react';
+import { Compass, Gauge, ArrowUpRight, ArrowDownRight, Minus, Globe, Building2 } from 'lucide-react';
 import { getFlightMeta } from '../utils/airlineData';
+import { getAircraftIconPath } from '../utils/aircraftIconMap';
 
 interface FlightTooltipProps {
   flight: Flight;
@@ -103,10 +104,12 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
       {/* Top Bar: Callsign & Status Badge */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-950/80 flex items-center justify-center border border-sky-500/40 shrink-0">
-            <Plane
-              className="w-5 h-5 text-sky-400 transition-transform duration-200"
-              style={{ transform: `rotate(${flight.heading - 45}deg)` }}
+          <div className="w-8 h-8 rounded-lg bg-sky-950/80 flex items-center justify-center border border-sky-500/40 shrink-0 p-1">
+            <img
+              src={getAircraftIconPath(flight)}
+              className="w-full h-full object-contain filter invert brightness-200"
+              style={{ transform: `rotate(${flight.heading}deg)` }}
+              alt="Flugzeug-Icon"
             />
           </div>
           <div>
