@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, X, RotateCcw, Search, Sparkles, Check } from 'lucide-react';
+import { Palette, X, RotateCcw, Search, Sparkles, Check, RefreshCw } from 'lucide-react';
 import { ALL_AIRCRAFT_ICONS, AircraftIconInfo } from '../utils/aircraftIconMap';
 
 const LOCAL_STORAGE_KEY = 'aircraft_icon_colors';
@@ -104,12 +104,23 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                title="Website neu laden (Refresh)"
+                className="px-2.5 py-1.5 rounded-lg bg-sky-950/80 hover:bg-sky-900 border border-sky-500/40 text-sky-400 hover:text-sky-200 flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95 group/btn"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-sky-400 group-hover/btn:rotate-180 transition-transform duration-500" />
+                <span>Neu laden</span>
+              </button>
+
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Map Overlay Toggles: EuroAirport Runways */}
