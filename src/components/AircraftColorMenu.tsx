@@ -20,11 +20,15 @@ const PRESET_SWATCHES = [
 export interface AircraftColorMenuProps {
   iconColors: Record<string, string>;
   onColorsChange: (newColors: Record<string, string>) => void;
+  showRunways: boolean;
+  onToggleRunways: (show: boolean) => void;
 }
 
 export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
   iconColors,
   onColorsChange,
+  showRunways,
+  onToggleRunways,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,6 +109,32 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
               className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Map Overlay Toggles: EuroAirport Runways */}
+          <div className="px-3 py-2.5 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+              <div>
+                <span className="text-xs font-semibold text-slate-200">EuroAirport Basel Pisten</span>
+                <p className="text-[10px] text-slate-400">Pisten 15/33 & 08/26 auf Karte einblenden</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onToggleRunways(!showRunways)}
+              className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer border ${
+                showRunways
+                  ? 'bg-sky-600 border-sky-400'
+                  : 'bg-slate-800 border-slate-700'
+              }`}
+            >
+              <div
+                className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                  showRunways ? 'translate-x-[20px]' : 'translate-x-0'
+                }`}
+              />
             </button>
           </div>
 

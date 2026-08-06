@@ -115,27 +115,27 @@ export const GEO_FEATURES: GeoFeature[] = [
     ],
   },
 
-  // --- EUROAIRPORT BASEL-MULHOUSE (LFSB / BSL) RUNWAYS ---
-  // Main Runway 15/33 (Lat 47.590 lon 7.529 to 47.608 lon 7.514)
+  // --- EUROAIRPORT BASEL-MULHOUSE (LFSB / BSL / EAP) RUNWAYS ---
+  // Main Runway 15/33 (3,900m x 60m, Direction ~154° / 334°)
   {
     id: 'runway-15-33',
-    name: 'Piste 15/33 EuroAirport',
+    name: 'EuroAirport Piste 15/33 (Hauptpiste 3.900m)',
     type: 'runway',
     category: 'airport',
     coordinates: [
-      { lat: 47.6085, lon: 7.5135 },
-      { lat: 47.5850, lon: 7.5340 },
+      { lat: 47.6085, lon: 7.5140 }, // Schwelle 15 (Nord-West)
+      { lat: 47.5765, lon: 7.5385 }, // Schwelle 33 (Süd-Ost)
     ],
   },
-  // Cross Runway 08/26
+  // Cross Runway 08/26 (1,820m x 60m, Direction ~077° / 257°)
   {
     id: 'runway-08-26',
-    name: 'Piste 08/26 EuroAirport',
+    name: 'EuroAirport Piste 08/26 (Nebenpiste 1.820m)',
     type: 'runway',
     category: 'airport',
     coordinates: [
-      { lat: 47.5940, lon: 7.5180 },
-      { lat: 47.5910, lon: 7.5380 },
+      { lat: 47.5922, lon: 7.5155 }, // Schwelle 08 (West)
+      { lat: 47.5960, lon: 7.5395 }, // Schwelle 26 (Ost)
     ],
   },
 

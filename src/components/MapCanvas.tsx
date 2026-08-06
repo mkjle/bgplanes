@@ -39,6 +39,27 @@ export const MapCanvas: React.FC = () => {
   const iconColorsRef = useRef<Record<string, string>>(iconColors);
   iconColorsRef.current = iconColors;
 
+  // EuroAirport Runways overlay state
+  const [showRunways, setShowRunways] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('show_euroairport_runways');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const runwayLayerGroupRef = useRef<L.LayerGroup | null>(null);
+
+  const handleToggleRunways = (show: boolean) => {
+    setShowRunways(show);
+    try {
+      localStorage.setItem('show_euroairport_runways', JSON.stringify(show));
+    } catch (e) {
+      console.error('Failed to save runway preference:', e);
+    }
+  };
+
   // Map stores for active flights & Leaflet markers & label placement side & hover status
   const flightsMapRef = useRef<Map<string, RenderFlight>>(new Map());
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
@@ -134,6 +155,7 @@ export const MapCanvas: React.FC = () => {
     }).addTo(map);
 
     mapRef.current = map;
+    runwayLayerGroupRef.current = L.layerGroup().addTo(map);
 
     // Wintersweiler center marker
     const wintersweilerIcon = L.divIcon({
@@ -171,6 +193,68 @@ export const MapCanvas: React.FC = () => {
       mapRef.current = null;
     };
   }, []);
+
+  // 1b. Render / clear subtle dark-themed EuroAirport Basel runways dynamically
+  useEffect(() => {
+    if (!runwayLayerGroupRef.current) return;
+    runwayLayerGroupRef.current.clearLayers();
+
+    if (showRunways) {
+      // 1. Main Runway 15/33 (3,900m x 60m)
+      const rwy1533Coords: [number, number][] = [
+        [47.6085, 7.5140], // Threshold 15 (NW)
+        [47.5765, 7.5385], // Threshold 33 (SE)
+      ];
+      // Dark asphalt strip blending seamlessly with dark Carto map
+      const rwy1533Base = L.polyline(rwy1533Coords, {
+        color: '#1e293b',
+        weight: 6,
+        opacity: 0.85,
+        lineCap: 'square',
+      });
+      // Subtle slate centerline
+      const rwy1533Line = L.polyline(rwy1533Coords, {
+        color: '#475569',
+        weight: 1.5,
+        opacity: 0.8,
+      });
+
+      // 2. Cross Runway 08/26 (1,820m x 60m)
+      const rwy0826Coords: [number, number][] = [
+        [47.5922, 7.5155], // Threshold 08 (West)
+        [47.5960, 7.5395], // Threshold 26 (East)
+      ];
+      const rwy0826Base = L.polyline(rwy0826Coords, {
+        color: '#1e293b',
+        weight: 5,
+        opacity: 0.85,
+        lineCap: 'square',
+      });
+      const rwy0826Line = L.polyline(rwy0826Coords, {
+        color: '#475569',
+        weight: 1.5,
+        opacity: 0.8,
+      });
+
+      // Subtle slate airport label (no glaring blue boxes, no numbers)
+      const airportBadgeIcon = L.divIcon({
+        className: 'subtle-airport-label',
+        html: `
+          <div style="transform: translate(-50%, -50%); pointer-events: none; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; font-weight: 600; color: #64748b; letter-spacing: 0.5px; white-space: nowrap; text-shadow: 0 1px 4px #000000;">
+            EuroAirport Basel
+          </div>
+        `,
+        iconSize: [0, 0],
+      });
+      const labelMarker = L.marker([47.5980, 7.5270], { icon: airportBadgeIcon, interactive: false });
+
+      runwayLayerGroupRef.current.addLayer(rwy1533Base);
+      runwayLayerGroupRef.current.addLayer(rwy1533Line);
+      runwayLayerGroupRef.current.addLayer(rwy0826Base);
+      runwayLayerGroupRef.current.addLayer(rwy0826Line);
+      runwayLayerGroupRef.current.addLayer(labelMarker);
+    }
+  }, [showRunways]);
 
   // 2. Poll server for real-time live flight radar every 2 seconds
   useEffect(() => {
@@ -458,6 +542,8 @@ export const MapCanvas: React.FC = () => {
       <AircraftColorMenu
         iconColors={iconColors}
         onColorsChange={handleColorsChange}
+        showRunways={showRunways}
+        onToggleRunways={handleToggleRunways}
       />
 
       {/* 3. Hover Details Tooltip Card (Only rendered when cursor is over an airplane) */}
