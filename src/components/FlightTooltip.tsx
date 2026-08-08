@@ -2,7 +2,7 @@ import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Flight } from '../types';
 import { Compass, Gauge, ArrowUpRight, ArrowDownRight, Minus, Globe, Building2 } from 'lucide-react';
 import { getFlightMeta } from '../utils/airlineData';
-import { getAircraftIconFilename } from '../utils/aircraftIconMap';
+import { getAircraftIconFilename, DEFAULT_MODEL_COLORS } from '../utils/aircraftIconMap';
 
 interface FlightTooltipProps {
   flight: Flight;
@@ -27,7 +27,7 @@ export const FlightTooltip: React.FC<FlightTooltipProps> = ({
 
   const iconFilename = getAircraftIconFilename(flight);
   const iconPath = `/assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/${iconFilename}`;
-  const customColor = iconColors[iconFilename] || '#ffffff';
+  const customColor = iconColors[iconFilename] || DEFAULT_MODEL_COLORS[iconFilename] || '#ffffff';
 
   const tooltipRef = useRef<HTMLDivElement>(null);
 

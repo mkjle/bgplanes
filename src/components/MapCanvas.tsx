@@ -5,7 +5,8 @@ import { WINTERSWEILER_CENTER, MAP_CENTER } from '../data/geoData';
 import { FlightTooltip } from './FlightTooltip';
 import { AircraftColorMenu } from './AircraftColorMenu';
 import { fetchClientFlights } from '../utils/clientFlightFetcher';
-import { getAircraftIconFilename } from '../utils/aircraftIconMap';
+import { getAircraftIconFilename, DEFAULT_MODEL_COLORS } from '../utils/aircraftIconMap';
+import { playAlertChime, initAudioContext } from '../utils/audioAlert';
 
 interface RenderFlight extends Flight {
   prevLat: number;
@@ -60,6 +61,58 @@ export const MapCanvas: React.FC = () => {
     }
   };
 
+  // Sound Alerts state
+  const [soundAlertsEnabled, setSoundAlertsEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('sound_alerts_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  const soundAlertsEnabledRef = useRef<boolean>(soundAlertsEnabled);
+  soundAlertsEnabledRef.current = soundAlertsEnabled;
+
+  const [soundModels, setSoundModels] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('sound_alert_models');
+      return saved ? JSON.parse(saved) : ['b747.svg', 'a380.svg', 'a340.svg'];
+    } catch (e) {
+      return ['b747.svg', 'a380.svg', 'a340.svg'];
+    }
+  });
+
+  const soundModelsRef = useRef<string[]>(soundModels);
+  soundModelsRef.current = soundModels;
+
+  const seenFlightIdsRef = useRef<Set<string>>(new Set());
+
+  const handleToggleSoundAlerts = (enabled: boolean) => {
+    setSoundAlertsEnabled(enabled);
+    try {
+      localStorage.setItem('sound_alerts_enabled', JSON.stringify(enabled));
+    } catch (e) {
+      console.error('Failed to save sound alerts preference:', e);
+    }
+  };
+
+  const handleToggleSoundModel = (filename: string) => {
+    const updated = soundModels.includes(filename)
+      ? soundModels.filter((m) => m !== filename)
+      : [...soundModels, filename];
+    setSoundModels(updated);
+    try {
+      localStorage.setItem('sound_alert_models', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save sound models:', e);
+    }
+  };
+
+  const handleTestSound = () => {
+    playAlertChime();
+  };
+
   // Map stores for active flights & Leaflet markers & label placement side & hover status
   const flightsMapRef = useRef<Map<string, RenderFlight>>(new Map());
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
@@ -83,7 +136,7 @@ export const MapCanvas: React.FC = () => {
     const iconPath = `/assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/${iconFilename}`;
 
     const colors = customColors || iconColorsRef.current;
-    const modelColor = colors[iconFilename] || '#ffffff';
+    const modelColor = colors[iconFilename] || DEFAULT_MODEL_COLORS[iconFilename] || '#ffffff';
 
     const filterGlow = isHovered
       ? `drop-shadow(0 0 12px ${modelColor}) brightness(1.2)`
@@ -291,9 +344,24 @@ export const MapCanvas: React.FC = () => {
 
           const activeIds = new Set<string>();
           const now = performance.now();
+          let soundTriggered = false;
 
           fetchedFlights.forEach((f) => {
             activeIds.add(f.id);
+
+            // Check if this flight is entering the screen for the first time
+            if (!seenFlightIdsRef.current.has(f.id)) {
+              seenFlightIdsRef.current.add(f.id);
+
+              const iconFilename = getAircraftIconFilename(f);
+              if (
+                soundAlertsEnabledRef.current &&
+                soundModelsRef.current.includes(iconFilename)
+              ) {
+                soundTriggered = true;
+              }
+            }
+
             const existing = flightsMapRef.current.get(f.id);
             if (!existing) {
               flightsMapRef.current.set(f.id, {
@@ -345,9 +413,10 @@ export const MapCanvas: React.FC = () => {
             }
           });
 
-          // Clean up markers for flights no longer present
+          // Clean up markers and seen tracking for flights no longer present
           flightsMapRef.current.forEach((_, id) => {
             if (!activeIds.has(id)) {
+              seenFlightIdsRef.current.delete(id);
               const marker = markersMapRef.current.get(id);
               if (marker && mapRef.current) {
                 mapRef.current.removeLayer(marker);
@@ -356,6 +425,11 @@ export const MapCanvas: React.FC = () => {
               flightsMapRef.current.delete(id);
             }
           });
+
+          // Play chime once if any target aircraft entered screen
+          if (soundTriggered) {
+            playAlertChime();
+          }
         }
       } catch (err) {
         // Silent catch
@@ -528,6 +602,7 @@ export const MapCanvas: React.FC = () => {
   return (
     <div
       onMouseMove={handleMouseMove}
+      onClick={initAudioContext}
       className={`relative w-screen h-screen overflow-hidden bg-slate-950 ${
         hoveredFlight ? 'cursor-pointer' : 'cursor-default'
       }`}
@@ -544,6 +619,11 @@ export const MapCanvas: React.FC = () => {
         onColorsChange={handleColorsChange}
         showRunways={showRunways}
         onToggleRunways={handleToggleRunways}
+        soundAlertsEnabled={soundAlertsEnabled}
+        onToggleSoundAlerts={handleToggleSoundAlerts}
+        soundModels={soundModels}
+        onToggleSoundModel={handleToggleSoundModel}
+        onTestSound={handleTestSound}
       />
 
       {/* 3. Hover Details Tooltip Card (Only rendered when cursor is over an airplane) */}

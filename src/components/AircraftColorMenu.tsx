@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Palette, X, RotateCcw, Search, Sparkles, Check, RefreshCw } from 'lucide-react';
-import { ALL_AIRCRAFT_ICONS, AircraftIconInfo } from '../utils/aircraftIconMap';
+import React, { useState } from 'react';
+import { Palette, X, RotateCcw, Search, Sparkles, RefreshCw, Bell, BellOff, Volume2 } from 'lucide-react';
+import { ALL_AIRCRAFT_ICONS, DEFAULT_MODEL_COLORS } from '../utils/aircraftIconMap';
 
 const LOCAL_STORAGE_KEY = 'aircraft_icon_colors';
 
@@ -22,6 +22,11 @@ export interface AircraftColorMenuProps {
   onColorsChange: (newColors: Record<string, string>) => void;
   showRunways: boolean;
   onToggleRunways: (show: boolean) => void;
+  soundAlertsEnabled: boolean;
+  onToggleSoundAlerts: (enabled: boolean) => void;
+  soundModels: string[];
+  onToggleSoundModel: (filename: string) => void;
+  onTestSound: () => void;
 }
 
 export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
@@ -29,6 +34,11 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
   onColorsChange,
   showRunways,
   onToggleRunways,
+  soundAlertsEnabled,
+  onToggleSoundAlerts,
+  soundModels,
+  onToggleSoundModel,
+  onTestSound,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,30 +133,72 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
             </div>
           </div>
 
-          {/* Map Overlay Toggles: EuroAirport Runways */}
-          <div className="px-3 py-2.5 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-              <div>
-                <span className="text-xs font-semibold text-slate-200">EuroAirport Basel Pisten</span>
-                <p className="text-[10px] text-slate-400">Pisten 15/33 & 08/26 auf Karte einblenden</p>
+          {/* Map Overlay Toggles: EuroAirport Runways & Sound Alerts */}
+          <div className="px-3 py-2.5 bg-slate-900/60 border-b border-slate-800/80 space-y-2">
+            {/* Runways Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200">EuroAirport Basel Pisten</span>
+                  <p className="text-[10px] text-slate-400">Pisten 15/33 & 08/26 auf Karte einblenden</p>
+                </div>
               </div>
+
+              <button
+                onClick={() => onToggleRunways(!showRunways)}
+                className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer border ${
+                  showRunways
+                    ? 'bg-sky-600 border-sky-400'
+                    : 'bg-slate-800 border-slate-700'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                    showRunways ? 'translate-x-[20px]' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
-            <button
-              onClick={() => onToggleRunways(!showRunways)}
-              className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer border ${
-                showRunways
-                  ? 'bg-sky-600 border-sky-400'
-                  : 'bg-slate-800 border-slate-700'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-                  showRunways ? 'translate-x-[20px]' : 'translate-x-0'
-                }`}
-              />
-            </button>
+            {/* Sound Alert Master Toggle & Test Sound */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Volume2 className="w-3.5 h-3.5 text-amber-400" /> Ton bei Erscheinen (B747, A380, A340...)
+                  </span>
+                  <p className="text-[10px] text-slate-400">Angenehmer Dimmelton beim Einfliegen auf den Schirm</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onTestSound}
+                  title="Ton testen"
+                  className="px-2 py-1 rounded bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-300 text-[10px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Volume2 className="w-3 h-3" />
+                  <span>Test</span>
+                </button>
+
+                <button
+                  onClick={() => onToggleSoundAlerts(!soundAlertsEnabled)}
+                  className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer border ${
+                    soundAlertsEnabled
+                      ? 'bg-amber-600 border-amber-400'
+                      : 'bg-slate-800 border-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                      soundAlertsEnabled ? 'translate-x-[20px]' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Quick Preset Bar & Global Reset */}
@@ -209,8 +261,9 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
           {/* Aircraft Model List */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[480px]">
             {filteredIcons.map((item) => {
-              const currentColor = iconColors[item.filename] || item.defaultColor;
+              const currentColor = iconColors[item.filename] || DEFAULT_MODEL_COLORS[item.filename] || item.defaultColor;
               const iconPath = `/assets/ADS-B_Radar_Free_Aircraft_SVG_Icons/${item.filename}`;
+              const hasSoundAlert = soundModels.includes(item.filename);
 
               return (
                 <div
@@ -251,8 +304,25 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
                     </div>
                   </div>
 
-                  {/* Right: Color Selector & Color Input */}
+                  {/* Right: Sound Alert Bell + Color Selector & Color Input */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {/* Sound Alert Toggle for this specific aircraft model */}
+                    <button
+                      onClick={() => onToggleSoundModel(item.filename)}
+                      title={hasSoundAlert ? 'Ton-Signal bei Erscheinen AKTIV' : 'Ton-Signal bei Erscheinen deaktiviert'}
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                        hasSoundAlert
+                          ? 'bg-amber-950/80 border-amber-500/80 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-600 hover:text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      {hasSoundAlert ? (
+                        <Bell className="w-3.5 h-3.5 fill-amber-400/20" />
+                      ) : (
+                        <BellOff className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+
                     {/* Native Hex Picker */}
                     <label
                       title="Eigene Farbe wählen"

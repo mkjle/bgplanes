@@ -207,10 +207,10 @@ export const ALL_AIRCRAFT_ICONS: AircraftIconInfo[] = [
   { key: 'a0.svg', filename: 'a0.svg', label: 'A0 - Standard / Beluga / Unmapped', category: 'Default', defaultColor: '#ffffff' },
   { key: 'a320.svg', filename: 'a320.svg', label: 'Airbus A320 Family (A319/A320/A321/A220)', category: 'Airbus', defaultColor: '#ffffff' },
   { key: 'a330.svg', filename: 'a330.svg', label: 'Airbus A330', category: 'Airbus', defaultColor: '#ffffff' },
-  { key: 'a340.svg', filename: 'a340.svg', label: 'Airbus A340', category: 'Airbus', defaultColor: '#ffffff' },
-  { key: 'a380.svg', filename: 'a380.svg', label: 'Airbus A380 Superjumbo', category: 'Airbus', defaultColor: '#ffffff' },
+  { key: 'a340.svg', filename: 'a340.svg', label: 'Airbus A340', category: 'Airbus', defaultColor: '#ef4444' },
+  { key: 'a380.svg', filename: 'a380.svg', label: 'Airbus A380 Superjumbo', category: 'Airbus', defaultColor: '#ef4444' },
   { key: 'b737.svg', filename: 'b737.svg', label: 'Boeing 737 / MAX', category: 'Boeing', defaultColor: '#ffffff' },
-  { key: 'b747.svg', filename: 'b747.svg', label: 'Boeing 747 Jumbo Jet', category: 'Boeing', defaultColor: '#ffffff' },
+  { key: 'b747.svg', filename: 'b747.svg', label: 'Boeing 747 Jumbo Jet', category: 'Boeing', defaultColor: '#ef4444' },
   { key: 'b767.svg', filename: 'b767.svg', label: 'Boeing 767', category: 'Boeing', defaultColor: '#ffffff' },
   { key: 'b777.svg', filename: 'b777.svg', label: 'Boeing 777 Widebody', category: 'Boeing', defaultColor: '#ffffff' },
   { key: 'b787.svg', filename: 'b787.svg', label: 'Boeing 787 Dreamliner', category: 'Boeing', defaultColor: '#ffffff' },
@@ -229,6 +229,12 @@ export const ALL_AIRCRAFT_ICONS: AircraftIconInfo[] = [
   { key: 'learjet.svg', filename: 'learjet.svg', label: 'Bombardier Learjet', category: 'Business Jet', defaultColor: '#ffffff' },
   { key: 'md11.svg', filename: 'md11.svg', label: 'MD-11 / DC-10 Trijet', category: 'Cargo & Widebody', defaultColor: '#ffffff' },
 ];
+
+export const DEFAULT_MODEL_COLORS: Record<string, string> = {
+  'a340.svg': '#ef4444',
+  'a380.svg': '#ef4444',
+  'b747.svg': '#ef4444',
+};
 
 /**
  * Returns the SVG icon filename for a given flight or aircraft model.
