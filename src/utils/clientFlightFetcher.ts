@@ -115,17 +115,16 @@ export function parseOpenSkyResponse(data: any): Flight[] {
 export async function fetchClientFlights(): Promise<{ flights: Flight[]; isLiveRadar: boolean }> {
   // URLs to try in order of preference for live aircraft tracking
   const targetEndpoints = [
-    { url: '/api/flights/airplanes', type: 'adsb' },
-    { url: '/api/flights/adsb', type: 'adsb' },
-    { url: 'https://api.airplanes.live/v2/point/47.6741/7.5679/30', type: 'adsb' },
-    { url: 'https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/30', type: 'adsb' },
+    { url: '/api/flights', type: 'internal' },
+    { url: '/api/flights/adsb', type: 'internal' },
+    { url: 'https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/25', type: 'adsb' },
     { url: 'https://opensky-network.org/api/states/all?lamin=47.45&lamax=47.90&lomin=7.30&lomax=7.85', type: 'opensky' },
   ];
 
   for (const ep of targetEndpoints) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
+      const timeout = setTimeout(() => controller.abort(), 3500);
       const res = await fetch(ep.url, {
         signal: controller.signal,
         headers: { Accept: 'application/json' },
@@ -137,7 +136,9 @@ export async function fetchClientFlights(): Promise<{ flights: Flight[]; isLiveR
         if (contentType && contentType.includes('application/json')) {
           const data = await res.json();
           let parsed: Flight[] = [];
-          if (ep.type === 'adsb') {
+          if (ep.type === 'internal' && data && Array.isArray(data.flights)) {
+            parsed = data.flights;
+          } else if (ep.type === 'adsb') {
             parsed = parseADSBResponse(data);
           } else if (ep.type === 'opensky') {
             parsed = parseOpenSkyResponse(data);

@@ -37,3 +37,13 @@
   display: none !important;
 }
 
+/* Deep Midnight Radar Map Filter - Perfectly calibrated dark charcoal radar style (~12% luminance) without blacking out map details */
+.leaflet-tile-pane.radar-filtered {
+  filter: brightness(0.56) contrast(1.22) saturate(0.85) !important;
+}
+
+/* Sharp, crystal clear white labels in custom labelsPane above the dark filter */
+.radar-labels-layer {
+  filter: brightness(1.15) contrast(1.15) opacity(0.9) !important;
+}
+

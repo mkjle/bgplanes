@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, X, RotateCcw, Search, Sparkles, RefreshCw, Bell, BellOff, Volume2 } from 'lucide-react';
+import { Palette, X, RotateCcw, Search, Sparkles, RefreshCw, Bell, BellOff, Volume2, Moon } from 'lucide-react';
 import { ALL_AIRCRAFT_ICONS, DEFAULT_MODEL_COLORS } from '../utils/aircraftIconMap';
 
 const LOCAL_STORAGE_KEY = 'aircraft_icon_colors';
@@ -22,6 +22,8 @@ export interface AircraftColorMenuProps {
   onColorsChange: (newColors: Record<string, string>) => void;
   showRunways: boolean;
   onToggleRunways: (show: boolean) => void;
+  darkFilterEnabled: boolean;
+  onToggleDarkFilter: (enabled: boolean) => void;
   soundAlertsEnabled: boolean;
   onToggleSoundAlerts: (enabled: boolean) => void;
   soundModels: string[];
@@ -34,6 +36,8 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
   onColorsChange,
   showRunways,
   onToggleRunways,
+  darkFilterEnabled,
+  onToggleDarkFilter,
   soundAlertsEnabled,
   onToggleSoundAlerts,
   soundModels,
@@ -133,8 +137,36 @@ export const AircraftColorMenu: React.FC<AircraftColorMenuProps> = ({
             </div>
           </div>
 
-          {/* Map Overlay Toggles: EuroAirport Runways & Sound Alerts */}
+          {/* Map Overlay Toggles: Deep Dark Radar Filter, EuroAirport Runways & Sound Alerts */}
           <div className="px-3 py-2.5 bg-slate-900/60 border-b border-slate-800/80 space-y-2">
+            {/* Dark Radar Filter Toggle */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${darkFilterEnabled ? 'bg-sky-400 shadow-[0_0_8px_#38bdf8]' : 'bg-slate-500'}`}></div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Moon className="w-3.5 h-3.5 text-sky-400" /> Tiefschwarz Radar-Filter
+                  </span>
+                  <p className="text-[10px] text-slate-400">Tiefdunkler Radar-Look wie vorhin (ohne API-Key & ohne Wasserzeichen)</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onToggleDarkFilter(!darkFilterEnabled)}
+                className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer border ${
+                  darkFilterEnabled
+                    ? 'bg-sky-600 border-sky-400'
+                    : 'bg-slate-800 border-slate-700'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                    darkFilterEnabled ? 'translate-x-[20px]' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Runways Toggle */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

@@ -34,18 +34,18 @@ let lastFetchTime = 0;
 // Fetch Live Flight Data from ADSB.lol + FlightRadar24 concurrently
 async function fetchLiveFlightData() {
   const now = Date.now();
-  if (now - lastFetchTime < 2500) return;
+  if (now - lastFetchTime < 2000) return;
   lastFetchTime = now;
 
   let foundCount = 0;
 
   // Run both fetch requests in parallel
   const [adsbRes, fr24Res] = await Promise.allSettled([
-    // 1. ADSB.lol (15 Nautical Miles radius ~27km around Wintersweiler 47.6741, 7.5679)
+    // 1. ADSB.lol (25 Nautical Miles radius ~46km around Wintersweiler 47.6741, 7.5679)
     (async () => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch("https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/15", {
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch("https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/25", {
         signal: controller.signal,
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DreilanderRadar/1.0",
@@ -56,13 +56,13 @@ async function fetchLiveFlightData() {
       return res.ok ? await res.json() : null;
     })(),
 
-    // 2. FlightRadar24 (Focused EuroAirport Basel + Wintersweiler bounding box)
+    // 2. FlightRadar24 (Wide EuroAirport Basel + Dreiländereck bounding box)
     (async () => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch("https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.80,47.52,7.38,7.76", {
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch("https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.95,47.40,7.15,7.95", {
         signal: controller.signal,
-        headers: { "User-Agent": "Mozilla/5.0" },
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
       });
       clearTimeout(timeout);
       return res.ok ? await res.json() : null;
@@ -74,9 +74,9 @@ async function fetchLiveFlightData() {
     adsbRes.value.ac.forEach((ac: any) => {
       if (!ac.lat || !ac.lon) return;
 
-      // 18km radius check around Wintersweiler (47.6741, 7.5679)
+      // 42km radius check around Wintersweiler (47.6741, 7.5679)
       const distKm = Math.hypot((ac.lat - 47.6741) * 111, (ac.lon - 7.5679) * 75);
-      if (distKm > 18) return;
+      if (distKm > 42) return;
 
       const id = (ac.hex || "").trim().toLowerCase();
       if (!id) return;
@@ -159,9 +159,9 @@ async function fetchLiveFlightData() {
         const lon = item[2];
         if (!lat || !lon) return;
 
-        // 18km radius check around Wintersweiler (47.6741, 7.5679)
+        // 42km radius check around Wintersweiler (47.6741, 7.5679)
         const distKm = Math.hypot((lat - 47.6741) * 111, (lon - 7.5679) * 75);
-        if (distKm > 18) return;
+        if (distKm > 42) return;
 
         const heading = item[3] || 0;
         const altFeetRaw = item[4] || 0;
@@ -223,19 +223,23 @@ async function fetchLiveFlightData() {
 
   isLiveRadarActive = activeFlightsMap.size > 0;
 
-  // Cleanup flights not seen in past 20 seconds
+  // Cleanup flights not seen in past 45 seconds (gives ample headroom during network jitter)
   activeFlightsMap.forEach((flight, flightId) => {
-    if (now - flight.lastSeen > 20000) {
+    if (now - flight.lastSeen > 45000) {
       activeFlightsMap.delete(flightId);
     }
   });
 }
 
-// Background radar polling interval
-setInterval(fetchLiveFlightData, 3000);
+// Initial fetch on server start & recurring background radar polling
+fetchLiveFlightData();
+setInterval(fetchLiveFlightData, 2500);
 
 // API Endpoint for Active Live Flights
-app.get("/api/flights", (req, res) => {
+app.get(["/api/flights", "/api/flights/*"], async (req, res) => {
+  if (activeFlightsMap.size === 0) {
+    await fetchLiveFlightData();
+  }
   const flightsList = Array.from(activeFlightsMap.values());
   return res.json({
     flights: flightsList,

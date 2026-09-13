@@ -15,6 +15,7 @@ interface RenderFlight extends Flight {
   targetLon: number;
   lastUpdate: number;
   updateDuration: number;
+  lastSeenTime: number;
 }
 
 export const MapCanvas: React.FC = () => {
@@ -58,6 +59,35 @@ export const MapCanvas: React.FC = () => {
       localStorage.setItem('show_euroairport_runways', JSON.stringify(show));
     } catch (e) {
       console.error('Failed to save runway preference:', e);
+    }
+  };
+
+  // Deep Dark Radar Map Filter State (Zero API-Key, true pitch-black radar aesthetic)
+  const [darkFilterEnabled, setDarkFilterEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('radar_dark_filter_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  const handleToggleDarkFilter = (enabled: boolean) => {
+    setDarkFilterEnabled(enabled);
+    try {
+      localStorage.setItem('radar_dark_filter_enabled', JSON.stringify(enabled));
+    } catch (e) {
+      console.error('Failed to save dark filter preference:', e);
+    }
+    if (mapRef.current) {
+      const tilePane = mapRef.current.getPane('tilePane');
+      if (tilePane) {
+        if (enabled) {
+          tilePane.classList.add('radar-filtered');
+        } else {
+          tilePane.classList.remove('radar-filtered');
+        }
+      }
     }
   };
 
@@ -118,6 +148,8 @@ export const MapCanvas: React.FC = () => {
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
   const labelSidesRef = useRef<Map<string, 'left' | 'right'>>(new Map());
   const hoverStatesRef = useRef<Map<string, boolean>>(new Map());
+  const lastHeadingRef = useRef<Map<string, number>>(new Map());
+  const lastAltRef = useRef<Map<string, number>>(new Map());
 
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
@@ -202,10 +234,34 @@ export const MapCanvas: React.FC = () => {
       attributionControl: false,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd',
-    }).addTo(map);
+    // 100% Free, Zero API-Key, Zero Watermark Deep Midnight Radar Basemap
+    // Base layer: Sits in tilePane which has our deep-dark filter applied
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 16,
+      }
+    ).addTo(map);
+
+    const tilePane = map.getPane('tilePane');
+    if (tilePane && darkFilterEnabled) {
+      tilePane.classList.add('radar-filtered');
+    }
+
+    // Custom labels pane (z-index 450) above the dark filter pane so city labels & country borders remain crystal clear
+    const labelsPane = map.createPane('labelsPane');
+    labelsPane.style.zIndex = '450';
+    labelsPane.style.pointerEvents = 'none';
+
+    // Reference layer: Sharp, clean white/light labels for towns, airports & borders
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 16,
+        pane: 'labelsPane',
+        className: 'radar-labels-layer',
+      }
+    ).addTo(map);
 
     mapRef.current = map;
     runwayLayerGroupRef.current = L.layerGroup().addTo(map);
@@ -339,8 +395,7 @@ export const MapCanvas: React.FC = () => {
         }
 
         if (isMounted) {
-          setIsLiveRadar(isLive);
-          setFlightCount(fetchedFlights.length);
+          setIsLiveRadar(isLive || flightsMapRef.current.size > 0);
 
           const activeIds = new Set<string>();
           const now = performance.now();
@@ -372,6 +427,7 @@ export const MapCanvas: React.FC = () => {
                 targetLon: f.lon,
                 lastUpdate: now,
                 updateDuration: 2000,
+                lastSeenTime: now,
               });
             } else {
               const latDiff = f.lat - existing.lat;
@@ -389,6 +445,7 @@ export const MapCanvas: React.FC = () => {
               existing.targetLat = f.lat;
               existing.targetLon = f.lon;
               existing.lastUpdate = now;
+              existing.lastSeenTime = now;
 
               existing.heading = f.heading ?? existing.heading;
               existing.velocityKmh = f.velocityKmh ?? existing.velocityKmh;
@@ -413,18 +470,25 @@ export const MapCanvas: React.FC = () => {
             }
           });
 
-          // Clean up markers and seen tracking for flights no longer present
-          flightsMapRef.current.forEach((_, id) => {
-            if (!activeIds.has(id)) {
-              seenFlightIdsRef.current.delete(id);
-              const marker = markersMapRef.current.get(id);
-              if (marker && mapRef.current) {
-                mapRef.current.removeLayer(marker);
+          // Clean up markers and seen tracking ONLY for flights not seen for 35 seconds
+          // (Prevents momentary network dips from wiping active planes from the screen)
+          if (fetchedFlights.length > 0) {
+            flightsMapRef.current.forEach((flight, id) => {
+              if (!activeIds.has(id) && now - (flight.lastSeenTime || flight.lastUpdate) > 35000) {
+                seenFlightIdsRef.current.delete(id);
+                lastHeadingRef.current.delete(id);
+                lastAltRef.current.delete(id);
+                const marker = markersMapRef.current.get(id);
+                if (marker && mapRef.current) {
+                  mapRef.current.removeLayer(marker);
+                }
+                markersMapRef.current.delete(id);
+                flightsMapRef.current.delete(id);
               }
-              markersMapRef.current.delete(id);
-              flightsMapRef.current.delete(id);
-            }
-          });
+            });
+          }
+
+          setFlightCount(flightsMapRef.current.size);
 
           // Play chime once if any target aircraft entered screen
           if (soundTriggered) {
@@ -523,13 +587,22 @@ export const MapCanvas: React.FC = () => {
             markersMapRef.current.set(f.id, marker);
             labelSidesRef.current.set(f.id, labelSide);
             hoverStatesRef.current.set(f.id, isHovered);
+            lastHeadingRef.current.set(f.id, f.heading || 0);
+            lastAltRef.current.set(f.id, f.altitudeFeet || 0);
           } else {
             marker.setLatLng([f.lat, f.lon]);
-            // Re-create icon if label side OR hover state changed
-            if (previousSide !== labelSide || previousHovered !== isHovered) {
+            const prevHeading = lastHeadingRef.current.get(f.id) ?? 0;
+            const prevAlt = lastAltRef.current.get(f.id) ?? 0;
+            const headingChanged = Math.abs(prevHeading - (f.heading || 0)) >= 3;
+            const altChanged = Math.abs(prevAlt - (f.altitudeFeet || 0)) >= 50;
+
+            // Re-create icon if label side, hover state, heading or altitude changed
+            if (previousSide !== labelSide || previousHovered !== isHovered || headingChanged || altChanged) {
               marker.setIcon(createPlaneIcon(f, isHovered, labelSide));
               labelSidesRef.current.set(f.id, labelSide);
               hoverStatesRef.current.set(f.id, isHovered);
+              lastHeadingRef.current.set(f.id, f.heading || 0);
+              lastAltRef.current.set(f.id, f.altitudeFeet || 0);
             }
           }
         });
@@ -619,6 +692,8 @@ export const MapCanvas: React.FC = () => {
         onColorsChange={handleColorsChange}
         showRunways={showRunways}
         onToggleRunways={handleToggleRunways}
+        darkFilterEnabled={darkFilterEnabled}
+        onToggleDarkFilter={handleToggleDarkFilter}
         soundAlertsEnabled={soundAlertsEnabled}
         onToggleSoundAlerts={handleToggleSoundAlerts}
         soundModels={soundModels}
