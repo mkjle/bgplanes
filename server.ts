@@ -235,6 +235,26 @@ async function fetchLiveFlightData() {
 fetchLiveFlightData();
 setInterval(fetchLiveFlightData, 2500);
 
+// Proxy endpoint for raw FlightRadar24 feed
+app.get("/api/flights/fr24", async (req, res) => {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const response = await fetch("https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.95,47.40,7.15,7.95", {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DreilanderRadar/1.0" },
+    });
+    clearTimeout(timeout);
+    if (response.ok) {
+      const data = await response.json();
+      return res.json(data);
+    }
+  } catch (err) {
+    // fallback below
+  }
+  return res.status(502).json({ error: "Failed to fetch FR24 feed" });
+});
+
 // API Endpoint for Active Live Flights
 app.get(["/api/flights", "/api/flights/*"], async (req, res) => {
   if (activeFlightsMap.size === 0) {

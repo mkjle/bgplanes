@@ -1,15 +1,38 @@
+[build]
+  publish = "dist"
+  functions = "netlify/functions"
+
+# 1. Netlify Serverless Function for /api/flights
 [[redirects]]
-  from = "/api/flights/airplanes"
-  to = "https://api.airplanes.live/v2/point/47.6741/7.5679/30"
+  from = "/api/flights"
+  to = "/.netlify/functions/flights"
+  status = 200
+
+# 2. Flightradar24 Direct Reverse Proxy (bypasses CORS restrictions on Netlify)
+[[redirects]]
+  from = "/api/flights/fr24"
+  to = "https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.95,47.40,7.15,7.95"
   status = 200
   force = true
+  headers = { Access-Control-Allow-Origin = "*" }
 
+# 3. ADSB.lol Proxy
 [[redirects]]
   from = "/api/flights/adsb"
   to = "https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/30"
   status = 200
   force = true
+  headers = { Access-Control-Allow-Origin = "*" }
 
+# 4. Airplanes.live Proxy
+[[redirects]]
+  from = "/api/flights/airplanes"
+  to = "https://api.airplanes.live/v2/point/47.6741/7.5679/30"
+  status = 200
+  force = true
+  headers = { Access-Control-Allow-Origin = "*" }
+
+# 5. SPA Fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"

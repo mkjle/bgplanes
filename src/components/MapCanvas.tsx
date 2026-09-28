@@ -376,9 +376,10 @@ export const MapCanvas: React.FC = () => {
 
         try {
           const res = await fetch('/api/flights');
-          if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (res.ok && contentType.includes('application/json')) {
             const data = await res.json();
-            if (data && Array.isArray(data.flights)) {
+            if (data && Array.isArray(data.flights) && data.flights.length > 0) {
               fetchedFlights = data.flights;
               isLive = Boolean(data.isLiveRadar);
             }

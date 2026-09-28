@@ -1,3 +1,5 @@
-/api/flights/airplanes  https://api.airplanes.live/v2/point/47.6741/7.5679/30  200
-/api/flights/adsb       https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/30  200
-/*                       /index.html                                             200
+/api/flights           /.netlify/functions/flights                                             200
+/api/flights/fr24      https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.95,47.40,7.15,7.95  200!
+/api/flights/adsb      https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/30                  200!
+/api/flights/airplanes https://api.airplanes.live/v2/point/47.6741/7.5679/30                  200!
+/*                     /index.html                                                             200

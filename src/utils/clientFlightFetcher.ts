@@ -1,5 +1,76 @@
 import { Flight } from '../types';
 
+const CENTER_LAT = 47.6741; // Wintersweiler
+const CENTER_LON = 7.5679;
+const MAX_RADIUS_KM = 42;
+
+function calculateDistanceKm(lat: number, lon: number): number {
+  return Math.hypot((lat - CENTER_LAT) * 111, (lon - CENTER_LON) * 75);
+}
+
+export function parseFR24Response(data: any): Flight[] {
+  if (!data || typeof data !== 'object') return [];
+  const flights: Flight[] = [];
+  const now = Date.now();
+
+  Object.keys(data).forEach((key) => {
+    if (key === 'full_count' || key === 'version') return;
+    const item = data[key];
+    if (Array.isArray(item) && item.length >= 10) {
+      const lat = item[1];
+      const lon = item[2];
+      if (typeof lat !== 'number' || typeof lon !== 'number') return;
+      if (calculateDistanceKm(lat, lon) > MAX_RADIUS_KM) return;
+
+      const id = String(item[0] || key).toLowerCase().trim();
+      if (!id) return;
+
+      const heading = typeof item[3] === 'number' ? Math.round(item[3]) : 0;
+      const altFeetRaw = typeof item[4] === 'number' ? Math.round(item[4]) : 0;
+      const knots = typeof item[5] === 'number' ? Math.round(item[5]) : 0;
+      const isGround = altFeetRaw < 100 || knots < 25;
+      const altFeet = isGround ? 0 : altFeetRaw;
+      const altMeters = Math.round(altFeet * 0.3048);
+      const kmh = Math.round(knots * 1.852);
+      const squawk = item[6] ? String(item[6]) : undefined;
+      const typeCode = item[8] ? String(item[8]) : undefined;
+      const reg = item[9] ? String(item[9]) : undefined;
+      const rawCs = String(item[16] || item[13] || '').trim();
+      const callsign = rawCs || reg || id.toUpperCase();
+      const vRateFpm = typeof item[15] === 'number' ? item[15] : 0;
+      const verticalRate = isGround ? 0 : Math.round((vRateFpm / 196.85) * 10) / 10;
+
+      let country = 'Schweiz / Europa';
+      if (reg?.startsWith('D-') || callsign.startsWith('D-')) country = 'Germany';
+      if (reg?.startsWith('HB-') || callsign.startsWith('HB-')) country = 'Switzerland';
+      if (reg?.startsWith('F-') || callsign.startsWith('F-')) country = 'France';
+      if (reg?.startsWith('G-') || callsign.startsWith('G-')) country = 'United Kingdom';
+      if (reg?.startsWith('N') || callsign.startsWith('N')) country = 'United States';
+
+      flights.push({
+        id,
+        callsign,
+        originCountry: country,
+        registration: reg,
+        aircraftTypeCode: typeCode,
+        lat,
+        lon,
+        altitudeMeters: altMeters,
+        altitudeFeet: altFeet,
+        velocityKmh: kmh,
+        velocityKnots: knots,
+        heading,
+        verticalRate,
+        isGround,
+        squawk,
+        lastUpdated: now,
+      });
+    }
+  });
+
+  return flights;
+}
+
 export function parseADSBResponse(data: any): Flight[] {
   if (!data || !Array.isArray(data.ac)) return [];
   const flights: Flight[] = [];
@@ -7,10 +78,7 @@ export function parseADSBResponse(data: any): Flight[] {
 
   data.ac.forEach((ac: any) => {
     if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') return;
-
-    // Filter to ~35km radius around Wintersweiler (47.6741, 7.5679)
-    const distKm = Math.hypot((ac.lat - 47.6741) * 111, (ac.lon - 7.5679) * 75);
-    if (distKm > 35) return;
+    if (calculateDistanceKm(ac.lat, ac.lon) > MAX_RADIUS_KM) return;
 
     const id = (ac.hex || '').toString().trim().toLowerCase();
     if (!id) return;
@@ -72,9 +140,7 @@ export function parseOpenSkyResponse(data: any): Flight[] {
     const lon = s[5];
     const lat = s[6];
     if (!id || typeof lat !== 'number' || typeof lon !== 'number') return;
-
-    const distKm = Math.hypot((lat - 47.6741) * 111, (lon - 7.5679) * 75);
-    if (distKm > 35) return;
+    if (calculateDistanceKm(lat, lon) > MAX_RADIUS_KM) return;
 
     const rawCs = String(s[1] || '').trim();
     const callsign = rawCs || id.toUpperCase();
@@ -116,7 +182,9 @@ export async function fetchClientFlights(): Promise<{ flights: Flight[]; isLiveR
   // URLs to try in order of preference for live aircraft tracking
   const targetEndpoints = [
     { url: '/api/flights', type: 'internal' },
-    { url: '/api/flights/adsb', type: 'internal' },
+    { url: '/api/flights/fr24', type: 'fr24' },
+    { url: '/api/flights/adsb', type: 'adsb' },
+    { url: 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=47.95,47.40,7.15,7.95', type: 'fr24' },
     { url: 'https://api.adsb.lol/v2/lat/47.6741/lon/7.5679/dist/25', type: 'adsb' },
     { url: 'https://opensky-network.org/api/states/all?lamin=47.45&lamax=47.90&lomin=7.30&lomax=7.85', type: 'opensky' },
   ];
@@ -138,6 +206,8 @@ export async function fetchClientFlights(): Promise<{ flights: Flight[]; isLiveR
           let parsed: Flight[] = [];
           if (ep.type === 'internal' && data && Array.isArray(data.flights)) {
             parsed = data.flights;
+          } else if (ep.type === 'fr24') {
+            parsed = parseFR24Response(data);
           } else if (ep.type === 'adsb') {
             parsed = parseADSBResponse(data);
           } else if (ep.type === 'opensky') {
@@ -149,7 +219,7 @@ export async function fetchClientFlights(): Promise<{ flights: Flight[]; isLiveR
           }
         }
       }
-    } catch (err) {
+    } catch {
       // Continue to next endpoint seamlessly
     }
   }
